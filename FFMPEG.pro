@@ -1,5 +1,6 @@
 TEMPLATE = subdirs
 SUBDIRS = Capture \
     YUV \
-    YUVDecoding
+    YUVDecoding \
+    Player
 

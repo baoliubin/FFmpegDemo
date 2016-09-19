@@ -33,5 +33,4 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-RESOURCES += \
-    qml.qrc
+RESOURCES +=
