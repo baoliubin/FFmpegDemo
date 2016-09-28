@@ -2,5 +2,6 @@ TEMPLATE = subdirs
 SUBDIRS = Capture \
     YUV \
     YUVDecoding \
-    Player
-
+    Player  \
+    RGBToH264 \
+    Convert

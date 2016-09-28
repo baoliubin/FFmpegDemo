@@ -3,7 +3,7 @@ CONFIG += console c++11
 
 TARGET = Player
 
-FFMPEGPATH = E:/FFMPEG/ffmpeg-dev
+FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
 INCLUDEPATH += $${FFMPEGPATH}/include
 DEPENDPATH += $${FFMPEGPATH}/include
 

@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
 	av_register_all();
 
-	codec = avcodec_find_encoder(AV_CODEC_ID_H265);
+	codec = avcodec_find_encoder(AV_CODEC_ID_H264);
 	if (codec == NULL) {
 		return FF_FIND_CODEC_FAILED;
 	}
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 	codecCtx->max_b_frames = 1;
 	codecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
 
-	av_opt_set(codecCtx->priv_data,"preset", "slow", 0);
+//	av_opt_set(codecCtx->priv_data,"preset", "slow", 0);
 	if (avcodec_open2(codecCtx, codec, NULL) < 0 ) {
 		return FF_OPEN_CODEC_FAILED;
 	}

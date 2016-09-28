@@ -1,7 +1,7 @@
 TEMPLATE = app
 CONFIG += c++11 console
 
-FFMPEGPATH = E:/FFMPEG/ffmpeg-dev
+FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
 INCLUDEPATH += $${FFMPEGPATH}/include
 DEPENDPATH += $${FFMPEGPATH}/include
 

@@ -1,14 +1,15 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2016-08-22T22:26:58
+# Project created by QtCreator 2016-09-28T12:28:00
 #
 #-------------------------------------------------
+
+QT       += core gui
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+TARGET = Convert
 TEMPLATE = app
-CONFIG += console c++11
-#CONFIG -= app_bundle
-
-
-TARGET = YUV
 
 FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
 INCLUDEPATH += $${FFMPEGPATH}/include
@@ -23,9 +24,11 @@ LIBS += -L$${FFMPEGPATH}/lib -lavcodec \
     -lswresample \
     -lswscale
 
-SOURCES += main.cpp
+SOURCES += main.cpp\
+        widget.cpp \
+    convert.cpp
 
-HEADERS += \
-    errcode.h
+HEADERS  += widget.h \
+    convert.h
 
-
+FORMS    += widget.ui
