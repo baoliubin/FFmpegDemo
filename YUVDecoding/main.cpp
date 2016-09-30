@@ -9,7 +9,7 @@ extern "C" {
 #include <libavutil/samplefmt.h>
 }
 
-#define INBUF_SIZE 4096
+#define INBUF_SIZE (512 * 256)
 #define AUDIO_INBUF_SIZE 20480
 
 struct _Args{

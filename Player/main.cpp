@@ -154,8 +154,16 @@ int get_format_from_sample_fmt(const char **fmt, enum AVSampleFormat sample_fmt)
 	qDebug() << "sample format" << av_get_sample_fmt_name(sample_fmt) << "is not support as output format";
 	return -1;
 }
+void outError(int num)
+{
+	QByteArray error;
+	error.resize(1024);
+	av_strerror(num, error.data(), error.size());
+	qDebug() << "ffmpeg error:" << QString(error);
+}
 int main(int argc, char *argv[])
 {
+	qSetMessagePattern("[log %{file} %{line} %{function}] %{message}");
 	//[1]args
 	parseArgs(argc, argv);
 	qDebug () << Args;
@@ -164,11 +172,14 @@ int main(int argc, char *argv[])
 	//[2] init
 	av_register_all();
 	avcodec_register_all();
+	avformat_network_init();
 	//[2]
-
+	int ret = 0;
 	//[3] open input
-	if (avformat_open_input(&FFmpeg.fmtCtx, Args.inputFileName, NULL, NULL) < 0) {
+	ret = avformat_open_input(&FFmpeg.fmtCtx, Args.inputFileName, NULL, NULL);
+	if (ret < 0) {
 		qDebug() << "open input file error";
+		outError(ret);
 		return -1;
 	}
 	if (avformat_find_stream_info(FFmpeg.fmtCtx, NULL) < 0) {
@@ -230,7 +241,7 @@ int main(int argc, char *argv[])
 	av_init_packet(&packet);
 	packet.data = nullptr;
 	packet.size = 0;
-	int ret = 0;
+
 	int frameNum = 0;
 	int gotFrame = 0;
 	while(av_read_frame(FFmpeg.fmtCtx, &packet) >= 0) {
