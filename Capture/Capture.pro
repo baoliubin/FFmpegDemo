@@ -11,7 +11,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Capture
 TEMPLATE = app
 
-FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
+win32{
+    FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
+}
+unix{
+    FFMPEGPATH = /usr/local/ffmpeg/shared
+}
 INCLUDEPATH += $${FFMPEGPATH}/include
 DEPENDPATH += $${FFMPEGPATH}/include
 

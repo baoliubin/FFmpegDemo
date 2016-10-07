@@ -1,14 +1,14 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2016-08-22T22:26:58
+# Project created by QtCreator 2016-10-06T02:58:15
 #
 #-------------------------------------------------
+
 TEMPLATE = app
 CONFIG += console c++11
-#CONFIG -= app_bundle
+TARGET = Muxing
 
 
-TARGET = YUV
 
 win32{
     FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
@@ -16,21 +16,26 @@ win32{
 unix{
     FFMPEGPATH = /usr/local/ffmpeg/shared
 }
+
 INCLUDEPATH += $${FFMPEGPATH}/include
 DEPENDPATH += $${FFMPEGPATH}/include
 
-LIBS += -L$${FFMPEGPATH}/lib -lavcodec \
+unix|win32: LIBS += -L$${FFMPEGPATH}/lib/ \
     -lavdevice \
-    -lavfilter \
+    -lavcodec \
     -lavformat \
-    -lavutil \
-    -lpostproc \
     -lswresample \
-    -lswscale
+    -lavutil \
+    -lavfilter \
+    -lavdevice
 
-SOURCES += main.cpp
+
+SOURCES += main.cpp \
+    fileio.cpp \
+    stream.cpp
 
 HEADERS += \
-    errcode.h
-
-
+    fileio.h \
+    stream.h \
+    common.h \
+    ffmpeg_muxer.h

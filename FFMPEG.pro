@@ -4,4 +4,5 @@ SUBDIRS = Capture \
     YUVDecoding \
     Player  \
     RGBToH264 \
-    Convert
+    Convert \
+    Muxing

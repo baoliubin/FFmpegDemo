@@ -1,5 +1,6 @@
 #include <QDebug>
 #include <QFile>
+#include <QDir>
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -7,8 +8,6 @@ extern "C" {
 #include <libavutil/imgutils.h>
 #include <libavutil/samplefmt.h>
 }
-
-#define MAX_NUM_TO_DECODE 300
 
 struct _Args {
 	const char *inputFileName;
@@ -132,7 +131,7 @@ int get_format_from_sample_fmt(const char **fmt, enum AVSampleFormat sample_fmt)
 {
 	int  i;
 	struct sample_fmt_entry {
-		enum AVSampleFormat sample_fmt;
+        enum AVSampleFormat sample_fmt;
 		const char *fmt_be, *fmt_le;
 	}
 	sample_fmt_entry[] = {
@@ -165,9 +164,9 @@ int main(int argc, char *argv[])
 {
 	qSetMessagePattern("[log %{file} %{line} %{function}] %{message}");
 	//[1]args
-	parseArgs(argc, argv);
-	qDebug () << Args;
-	//[1]
+    parseArgs(argc, argv);
+    qDebug () << Args;
+//	[1]
 
 	//[2] init
 	av_register_all();
@@ -176,6 +175,7 @@ int main(int argc, char *argv[])
 	//[2]
 	int ret = 0;
 	//[3] open input
+    qDebug() << QDir::currentPath();
 	ret = avformat_open_input(&FFmpeg.fmtCtx, Args.inputFileName, NULL, NULL);
 	if (ret < 0) {
 		qDebug() << "open input file error";
@@ -245,9 +245,9 @@ int main(int argc, char *argv[])
 	int frameNum = 0;
 	int gotFrame = 0;
 	while(av_read_frame(FFmpeg.fmtCtx, &packet) >= 0) {
-		if (frameNum++ > MAX_NUM_TO_DECODE) {
-			break;
-		}
+//		if (frameNum++ > MAX_NUM_TO_DECODE) {
+//			break;
+//		}
 		do {
 			ret = decode_packet(gotFrame, false);
 			if (ret < 0) {
@@ -275,7 +275,11 @@ int main(int argc, char *argv[])
 				.arg(video.codecCtx->width)
 				.arg(video.codecCtx->height)
 				.arg(Args.output_Video_FileName);
-		QFile file("ffplayVideo.bat");
+#ifdef Q_OS_WIN
+        QFile file("ffplayVideo.bat");
+#else
+        QFile file("ffplayVideo.sh");
+#endif
 		if (file.open(QFile::ReadWrite)) {
 			QTextStream out(&file);
 			out << playVideo;
@@ -305,8 +309,11 @@ int main(int argc, char *argv[])
 				.arg(n_channels)
 				.arg(audio.codecCtx->sample_rate)
 				.arg(Args.output_Audio_FileName);
-
-		QFile file("ffplayAudio.bat");
+#ifdef Q_OS_WIN
+        QFile file("ffplayAudio.bat");
+#else
+        QFile file("ffplayAudio.sh");
+#endif
 		if (file.open(QFile::ReadWrite)) {
 			QTextStream out(&file);
 			out << playAudio;

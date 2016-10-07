@@ -10,7 +10,12 @@ CONFIG += console c++11
 
 TARGET = RGBToH264
 
-FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
+win32{
+    FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
+}
+unix{
+    FFMPEGPATH = /usr/local/ffmpeg/shared
+}
 INCLUDEPATH += $${FFMPEGPATH}/include
 DEPENDPATH += $${FFMPEGPATH}/include
 
