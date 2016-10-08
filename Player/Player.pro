@@ -1,6 +1,6 @@
 TEMPLATE = app
-CONFIG += console c++11
-
+CONFIG += c++11
+QT += core gui widgets
 TARGET = Player
 
 win32{
@@ -21,4 +21,15 @@ LIBS += -L$${FFMPEGPATH}/lib -lavcodec \
     -lswresample \
     -lswscale
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    encodertmp.cpp \
+    window.cpp
+
+FORMS +=
+
+HEADERS += \
+    encodertmp.h \
+    window.h
+
+RESOURCES += \
+    shader.qrc

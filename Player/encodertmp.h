@@ -1,0 +1,78 @@
+#ifndef ENCODERTMP_H
+#define ENCODERTMP_H
+
+#include <QObject>
+#include <QByteArray>
+#include <QThread>
+#include <QFile>
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/opt.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/samplefmt.h>
+}
+
+class DecodeRtmp : public QObject
+{
+    Q_OBJECT
+public:
+    explicit DecodeRtmp(QObject *parent = 0);
+    ~DecodeRtmp();
+
+signals:
+    void readyVideo(const QByteArray &data, int width, int height, int pixfmt);
+    void readyAudio(const QByteArray &data);
+public slots:
+    void work();
+private:
+    int open_codec_context(AVMediaType type);
+    void decode();
+    int decode_packet(int & gotFrame, bool cached);
+    int init();
+    void release();
+
+	struct _FFmpeg {
+		AVFormatContext *fmtCtx;
+		AVCodec *codec;
+		AVCodecContext *codecCtx;
+		AVStream	*stream;
+		_FFmpeg():fmtCtx(0),
+			codec(0),
+			codecCtx(0),
+			stream(0)
+		{
+		}
+	} FFmpeg;
+
+	struct _Video : public _FFmpeg {
+		uint8_t *dest_data[4];
+		int dest_linesize[4];
+		int dest_bufsize;
+		enum AVPixelFormat pix_format;
+		int frameWidth, frameHeight;
+		QFile outFile;
+
+	} video;
+	struct _Audio :public _FFmpeg {
+
+	}audio;
+	AVFrame *frame;
+	AVPacket packet;
+	QByteArray audioData, videoData;
+};
+class Work : public QObject
+{
+    Q_OBJECT
+public:
+    Work();
+    ~Work();
+signals:
+    void readyVideo(const QByteArray &data, int width, int height, int pixfmt);
+    void readyAudio(const QByteArray &data);
+    void work();
+private:
+    QThread thread;
+    DecodeRtmp *himma;
+};
+#endif // ENCODERTMP_H

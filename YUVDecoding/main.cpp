@@ -150,6 +150,7 @@ int main(int argc, char *argv[])
 								   &packet.data, &packet.size,
 								   pDataPtr, uDataSize,
 								   AV_NOPTS_VALUE, AV_NOPTS_VALUE, AV_NOPTS_VALUE);
+
 			pDataPtr += len;
 			uDataSize -= len;
 			if (0 == packet.size) {
