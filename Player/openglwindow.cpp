@@ -1,31 +1,44 @@
-#include "window.h"
+#include "openglwindow.h"
 #include "libavformat/avformat.h"
 #include <QPainter>
-Window::Window(QWidget *parent) : QOpenGLWidget(parent)
+OpenGLWindow::OpenGLWindow(QWidget *parent) : QOpenGLWidget(parent)
 {
-	timer = new QTimer(this);
 	fps = 0;
-	timer->start(1);
+	frameNumber = 0;
+	startTimer(50);
 }
-
-void Window::initializeGL()
+OpenGLWindow::~OpenGLWindow()
 {
-	m_width = 512;
-	m_height= 256;
+}
+void OpenGLWindow::timerEvent(QTimerEvent *event)
+{
+	int ret = 0;
+	VideoData data = work.getData(ret);
+	if (0 != ret) {
+		processVideoData(data.data, data.width, data.heigth, data.pixfmt);
+	}
+}
+void OpenGLWindow::initializeGL()
+{
+	m_width = width();
+	m_height= height();
 	initializeOpenGLFunctions();
-	resize(width(), height());
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	resize(width(), height());
+
+	glDepthMask(GL_TRUE);
 	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_DEPTH_TEST);
-	mModelMatrix.setToIdentity();
+
 	initTextures();
 	initShaders();
 	initData();
-	connect(&work, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SLOT(processVideoData(QByteArray,int,int,int)));
+
+	mModelMatrix.setToIdentity();
+//	connect(&work, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SLOT(processVideoData(QByteArray,int,int,int)));
 	emit work.work();
 }
-void Window::processVideoData(const QByteArray &data, int width, int height, int pixfmt)
+void OpenGLWindow::processVideoData(const QByteArray &data, int width, int height, int pixfmt)
 {
 	switch (pixfmt) {
 		case AV_PIX_FMT_YUV420P: {
@@ -49,35 +62,37 @@ void Window::processVideoData(const QByteArray &data, int width, int height, int
 		}
 	}
 	qDebug() << arrY.size() << arrU.size() << arrV.size();
-
+	resize(width, height);
 	update();
 }
-void Window::paintGL()
+void OpenGLWindow::paintGL()
 {
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glDepthMask(true);
+	glClearColor(0.2f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	program.bind();
 	draw();
 	program.release();
 
+
 	calcFPS();
 	paintFPS();
 }
-void Window::resizeGL(int w, int h)
+void OpenGLWindow::resizeGL(int w, int h)
 {
+	glViewport(0, 0, w, h);
 	float ratio = (float) w / h;
 	float left = -ratio;
 	float right = ratio;
 	float bottom = -1.0f;
 	float top = 1.0f;
 	float n  = 1.0f;
-	float f = 10.0f;
+	float f = 100.0f;
 	mProjectionMatrix.setToIdentity();
-	mProjectionMatrix.frustum(left, right, bottom, top, n, f);
+	mProjectionMatrix.frustum(-1.0, 1.0, bottom, top, n, f);
 }
 
-void Window::initShaders()
+void OpenGLWindow::initShaders()
 {
 	if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/vertex.vsh")) {
 		qDebug() << __FILE__<<__FUNCTION__<< " add vertex shader file failed.";
@@ -88,17 +103,12 @@ void Window::initShaders()
 		return ;
 	}
 	program.bindAttributeLocation("qt_Vertex", 0);
-	program.bindAttributeLocation("a_Color", 1);
-	program.bindAttributeLocation("qt_MultiTexCoord0", 2);
+	program.bindAttributeLocation("texCoord", 1);
 	program.link();
 	program.bind();
 
-	mMVPMatrixHandle	= program.uniformLocation("qt_ModelViewProjectionMatrix");
-	mVerticesHandle		= program.attributeLocation("qt_Vertex");
-	mColorsHandle		= program.attributeLocation("a_Color");
-	mTexCoordHandle		= program.attributeLocation("qt_MultiTexCoord0");
 }
-void Window::initTextures()
+void OpenGLWindow::initTextures()
 {
 	//    texture = new QOpenGLTexture(QOpenGLTexture::Target2D);
 	//    texture->setSize(width(), height());
@@ -111,45 +121,46 @@ void Window::initTextures()
 	texY->setSize(m_width, m_height);
 	texY->setFormat(QOpenGLTexture::LuminanceFormat);
 	texY->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-	texY->setMinificationFilter(QOpenGLTexture::Linear);
-	texY->setMagnificationFilter(QOpenGLTexture::Linear);
+	texY->setMinificationFilter(QOpenGLTexture::Nearest);
+	texY->setMagnificationFilter(QOpenGLTexture::Nearest);
 	texY->setWrapMode(QOpenGLTexture::Repeat);
 
 	texU = new QOpenGLTexture(QOpenGLTexture::Target2D);
-	texU->setSize(m_width/2, m_height/2);
+	texU->setSize(m_width, m_height);
 	texU->setFormat(QOpenGLTexture::LuminanceFormat);
 	texU->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-	texU->setMinificationFilter(QOpenGLTexture::Linear);
-	texU->setMagnificationFilter(QOpenGLTexture::Linear);
+	texU->setMinificationFilter(QOpenGLTexture::Nearest);
+	texU->setMagnificationFilter(QOpenGLTexture::Nearest);
 	texU->setWrapMode(QOpenGLTexture::Repeat);
 
 	texV = new QOpenGLTexture(QOpenGLTexture::Target2D);
-	texV->setSize(m_width/2, m_height/2);
+	texV->setSize(m_width, m_height);
 	texV->setFormat(QOpenGLTexture::LuminanceFormat);
 	texV->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-	texV->setMinificationFilter(QOpenGLTexture::Linear);
-	texV->setMagnificationFilter(QOpenGLTexture::Linear);
+	texV->setMinificationFilter(QOpenGLTexture::Nearest);
+	texV->setMagnificationFilter(QOpenGLTexture::Nearest);
 	texV->setWrapMode(QOpenGLTexture::Repeat);
+
 }
 
-void Window::initData()
+void OpenGLWindow::initData()
 {
-	vertices << QVector3D(-1, -1, 0.0f)
-			 << QVector3D(1, -1, 0.0f)
+	vertices << QVector3D(-1, 1, 0.0f)
 			 << QVector3D(1, 1, 0.0f)
-			 << QVector3D(-1, 1, 0.0f);
+			 << QVector3D(1, -1, 0.0f)
+			 << QVector3D(-1, -1, 0.0f);
 	texcoords << QVector2D(0, 0)
 			  << QVector2D(1, 0)
 			  << QVector2D(1, 1)
 			  << QVector2D(0, 1);
-	colors << QVector4D(1.0f, 0.0f, 0.0f, 1.0f)
-		   << QVector4D(0.0f, 0.0f, 1.0f, 1.0f)
-		   << QVector4D(0.0f, 1.0f, 0.0f, 1.0f);
+
 	mViewMatrix.setToIdentity();
 	mViewMatrix.lookAt(QVector3D(0.0f, 0.0f, 1.001f), QVector3D(0.0f, 0.0f, -5.0f), QVector3D(0.0f, 1.0f, 0.0f));
 }
-void Window::draw()
+
+void OpenGLWindow::draw()
 {
+
 	if (arrY.size() <=0 ) {
 		qDebug() << "y array is empty";
 		return ;
@@ -162,55 +173,60 @@ void Window::draw()
 		qDebug() << "v array is empty";
 		return ;
 	}
+	//	static int once = allocTexture();
+	mModelMatHandle		= program.uniformLocation("u_modelMatrix");
+	mViewMatHandle		= program.uniformLocation("u_viewMatrix");
+	mProjectMatHandle	= program.uniformLocation("u_projectMatrix");
+	mVerticesHandle		= program.attributeLocation("qt_Vertex");
+	mTexCoordHandle		= program.attributeLocation("texCoord");
 
 	//顶点
 	program.enableAttributeArray(mVerticesHandle);
 	program.setAttributeArray(mVerticesHandle, vertices.constData());
-	//颜色
-	program.enableAttributeArray(mColorsHandle);
-	program.setAttributeArray(mColorsHandle, colors.constData());
+
 	//纹理坐标
 	program.enableAttributeArray(mTexCoordHandle);
 	program.setAttributeArray(mTexCoordHandle, texcoords.constData());
 	//MVP矩阵
-	mMVPMatrix = mProjectionMatrix  * mViewMatrix * mModelMatrix;
-	program.setUniformValue(mMVPMatrixHandle, mMVPMatrix);
+	//	mMVPMatrix = mProjectionMatrix  * mViewMatrix * mModelMatrix;
+	//	program.setUniformValue(mMVPMatrixHandle, mMVPMatrix);
+
+	program.setUniformValue(mModelMatHandle, mModelMatrix);
+	program.setUniformValue(mViewMatHandle, mViewMatrix);
+	program.setUniformValue(mProjectMatHandle, mProjectionMatrix);
 
 	//pixFmt
 	program.setUniformValue("pixFmt", m_pixFmt);
 	qDebug() << m_pixFmt;
 	//纹理
-	//	texture->bind();
-	//	program.setUniformValue("qt_Texture0", 0);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texY->textureId());
-	//	texY->bind();
-
-
-	glActiveTexture(GL_TEXTURE1);
-	//	texU->bind();
-	glBindTexture(GL_TEXTURE_2D, texU->textureId());
-
-	glActiveTexture(GL_TEXTURE2);
-	//	texV->bind();
-	glBindTexture(GL_TEXTURE_2D, texV->textureId());
-
 	texY->setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, arrY.data());
-
 	texU->setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, arrU.data());
 	texV->setData(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8, arrV.data());
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texY->textureId());
 	program.setUniformValue("tex_y", 0);
+	texY->bind();
+
+	glActiveTexture(GL_TEXTURE1);
+	texU->bind();
+	glBindTexture(GL_TEXTURE_2D, texU->textureId());
 	program.setUniformValue("tex_u", 1);
+
+	glActiveTexture(GL_TEXTURE2);
+	texV->bind();
+	glBindTexture(GL_TEXTURE_2D, texV->textureId());
 	program.setUniformValue("tex_v", 2);
 
 	glDrawArrays(GL_TRIANGLE_FAN, 0, vertices.size());
-	//	texture->release();
+
 	program.disableAttributeArray(mVerticesHandle);
-	program.disableAttributeArray(mColorsHandle);
+	program.disableAttributeArray(mTexCoordHandle);
+	texY->release();
+	texU->release();
+	texV->release();
 }
-void Window::calcFPS()
+void OpenGLWindow::calcFPS()
 {
     static QTime time;
     static int once = [=](){time.start(); return 0;}();
@@ -222,14 +238,15 @@ void Window::calcFPS()
         frame = 0;
     }
 }
-void Window::updateFPS(qreal v)
+void OpenGLWindow::updateFPS(qreal v)
 {
     fps = v;
 }
-void Window::paintFPS()
+void OpenGLWindow::paintFPS()
 {
+	frameNumber++;
 	QPainter painter(this);
 	painter.setPen(Qt::green);
 	painter.setRenderHint(QPainter::TextAntialiasing);
-	painter.drawText(10, 10, QString("FPS:%1").arg(QString::number(fps, 'f', 3)));
+	painter.drawText(10, 10, QString("FPS:%1 %2").arg(QString::number(fps, 'f', 3)).arg(frameNumber));
 }

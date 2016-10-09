@@ -23,13 +23,15 @@ LIBS += -L$${FFMPEGPATH}/lib -lavcodec \
 
 SOURCES += main.cpp \
     encodertmp.cpp \
-    window.cpp
+    openglwindow.cpp \
+    widget.cpp
 
 FORMS +=
 
 HEADERS += \
     encodertmp.h \
-    window.h
+    openglwindow.h \
+    widget.h
 
 RESOURCES += \
     shader.qrc

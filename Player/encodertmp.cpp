@@ -9,25 +9,32 @@ static void outError(int num)
 	av_strerror(num, error.data(), error.size());
 	qDebug() << "ffmpeg error:" << QString(error);
 }
-
+// <0 : failed
+// >=0 : index
 int DecodeRtmp::open_codec_context(AVMediaType type)
 {
 	AVDictionary *opts = NULL;
-
-
+	if (!FFmpeg.fmtCtx) {
+		qDebug()<< "fmtCtx is null";
+		return -1;
+	}
 	int index = av_find_best_stream(FFmpeg.fmtCtx, type, -1, -1, NULL, 0);
 	if (index < 0) {
 		qDebug() << "find best stream failed";
 		outError(index);
-		int ret = avformat_alloc_output_context2(&FFmpeg.fmtCtx, NULL, "flv", NULL);
+		return -1;
+//		int ret = avformat_alloc_output_context2(&FFmpeg.fmtCtx, NULL, "flv", NULL);
 
-		if (ret < 0) {
-			qDebug() << "alloc output context failed" ;
-			outError(ret);
-			return ret;
-		}
+//		if (ret < 0) {
+//			qDebug() << "alloc output context failed" ;
+//			outError(ret);
+//			return ret;
+//		}
 	}
 	FFmpeg.stream = FFmpeg.fmtCtx->streams[index];
+	if (type == AVMEDIA_TYPE_VIDEO) {
+		qDebug() << "Video stream time base: {" <<FFmpeg.stream->time_base.num <<", "<< FFmpeg.stream->time_base.den << "}";
+	}
 	FFmpeg.codecCtx = FFmpeg.stream->codec;
 	FFmpeg.codec = avcodec_find_decoder(FFmpeg.codecCtx->codec_id);
 	if (!FFmpeg.codec) {
@@ -36,15 +43,20 @@ int DecodeRtmp::open_codec_context(AVMediaType type)
 	}
 
 	//		/* Init the decoders, with or without reference counting */
-	//		av_dict_set(&opts, "refcounted_frames", "0", 0);
+
+	//without
+	av_dict_set(&opts, "refcounted_frames", "0", 0);
+
+	//with
+	//	av_dict_set(&opts, "refcounted_frames", "1", 0);
+
 	int ret = avcodec_open2(FFmpeg.codecCtx, FFmpeg.codec, &opts) ;
 	if (ret < 0) {
 		qDebug() << "open codec failed";
 		outError(ret);
 		return -2;
 	}
-
-	return 0;
+	return index;
 }
 
 int DecodeRtmp::decode_packet(int & gotFrame, bool cached)
@@ -54,7 +66,7 @@ int DecodeRtmp::decode_packet(int & gotFrame, bool cached)
 	static int video_frame_count = 0;
 	static int audio_frame_count = 0;
 	gotFrame = 0;
-	if (packet.stream_index == video.stream->index) {
+	if (packet.stream_index == video.streamIndex) {
 		ret = avcodec_decode_video2(video.codecCtx, frame, &gotFrame, &packet);
 		if (ret < 0) {
 			qDebug() << "decode video frame failed";
@@ -78,7 +90,7 @@ int DecodeRtmp::decode_packet(int & gotFrame, bool cached)
 			emit readyVideo(videoData, frame->width, frame->height, video.pix_format);
 
 		}
-	} else if (packet.stream_index == audio.stream->index){
+	} else if (packet.stream_index == audio.streamIndex){
 		ret = avcodec_decode_audio4(audio.codecCtx, frame, &gotFrame, &packet);
 		if (ret < 0) {
 			qDebug() << "audio decode failed";
@@ -120,11 +132,12 @@ int DecodeRtmp::init()
 		outError(ret);
 		return -1;
 	}
-	if (open_codec_context(AVMEDIA_TYPE_VIDEO) >=0 ){
+	ret = open_codec_context(AVMEDIA_TYPE_VIDEO);
+	if ( ret >= 0 ){
+		video.streamIndex = ret;
 		video.codecCtx = FFmpeg.codecCtx;
 		video.stream = FFmpeg.stream;
 		video.codec  = FFmpeg.codec;
-
 		video.frameWidth = video.codecCtx->width;
 		video.frameHeight= video.codecCtx->height;
 		video.pix_format = video.codecCtx->pix_fmt;
@@ -139,22 +152,23 @@ int DecodeRtmp::init()
 		//			qDebug() << "open video output file failed";
 		//			return -3;
 		//		}
-		video.outFile.setFileName("out.yuv");
-		if (!video.outFile.open(QFile::ReadWrite)) {
-			qDebug() << "open video output file failed";
-		}
 
+	} else {
+		qDebug() << "open video context failed";
 	}
-	if (open_codec_context(AVMEDIA_TYPE_AUDIO) >=0) {
+	ret = open_codec_context(AVMEDIA_TYPE_AUDIO);
+	if ( ret>=0) {
+		audio.streamIndex = ret;
 		audio.codecCtx = FFmpeg.codecCtx;
 		audio.stream = FFmpeg.stream;
 		audio.codec  = FFmpeg.codec;
-
 		//		audioFile.setFileName(Args.output_Audio_FileName);
 		//		if (!audioFile.open(QFile::ReadWrite)) {
 		//			qDebug() << "open audio output file failed";
 		//			return -3;
 		//		}
+	} else {
+		qDebug() << "open audio context failed";
 	}
 	if (video.stream) {
 		qDebug() << "Demuxing video ";
@@ -211,7 +225,6 @@ void DecodeRtmp::release()
 		av_frame_free(&frame);
 	if (video.dest_data[0])
 		av_free(video.dest_data[0]);
-	video.outFile.close();
 }
 DecodeRtmp::DecodeRtmp(QObject *parent) : QObject(parent)
 {
@@ -233,11 +246,13 @@ void DecodeRtmp::work()
 }
 Work::Work()
 {
+	cache.setCapacity(20);
 	himma = new DecodeRtmp;
 	himma->moveToThread(&thread);
 	connect(&thread, SIGNAL(finished()), himma, SLOT(deleteLater()));
 	connect(this, SIGNAL(work()), himma, SLOT(work()));
-	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SIGNAL(readyVideo(QByteArray,int,int,int)));
+//	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SIGNAL(readyVideo(QByteArray,int,int,int)));
+	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SLOT(processVideo(QByteArray,int,int,int)));
 	connect(himma, SIGNAL(readyAudio(QByteArray)), this, SIGNAL(readyAudio(QByteArray)));
 	thread.start();
 }
@@ -246,4 +261,21 @@ Work::~Work()
 	thread.quit();
 	thread.wait();
 }
-
+VideoData Work::getData(int &got)
+{
+	if (cache.isEmpty()) {
+		got = 0;
+		return VideoData{NULL};
+	}
+	got = 1;
+	return cache.takeFirst();
+}
+void Work::processVideo(const QByteArray &data, int width, int height, int pixfmt)
+{
+	VideoData v;
+	v.data = data;
+	v.width = width;
+	v.heigth = height;
+	v.pixfmt = pixfmt;
+	cache.append(v);
+}

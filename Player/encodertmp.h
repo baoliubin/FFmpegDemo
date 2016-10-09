@@ -12,7 +12,7 @@ extern "C" {
 #include <libavutil/imgutils.h>
 #include <libavutil/samplefmt.h>
 }
-
+#include <QContiguousCache>
 class DecodeRtmp : public QObject
 {
     Q_OBJECT
@@ -37,10 +37,13 @@ private:
 		AVCodec *codec;
 		AVCodecContext *codecCtx;
 		AVStream	*stream;
+		int streamIndex;
+
 		_FFmpeg():fmtCtx(0),
 			codec(0),
 			codecCtx(0),
-			stream(0)
+			stream(0),
+			streamIndex(0)
 		{
 		}
 	} FFmpeg;
@@ -61,18 +64,29 @@ private:
 	AVPacket packet;
 	QByteArray audioData, videoData;
 };
+typedef struct _VideoData{
+    QByteArray data;
+    int width;
+    int heigth;
+    int pixfmt;
+}VideoData;
 class Work : public QObject
 {
     Q_OBJECT
 public:
     Work();
     ~Work();
+    VideoData getData(int &got);
 signals:
     void readyVideo(const QByteArray &data, int width, int height, int pixfmt);
     void readyAudio(const QByteArray &data);
     void work();
+public slots:
+    void processVideo(const QByteArray &data, int width, int height, int pixfmt);
 private:
     QThread thread;
     DecodeRtmp *himma;
+
+    QContiguousCache <VideoData> cache;
 };
 #endif // ENCODERTMP_H
