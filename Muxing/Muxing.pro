@@ -27,15 +27,20 @@ unix|win32: LIBS += -L$${FFMPEGPATH}/lib/ \
     -lswresample \
     -lavutil \
     -lavfilter \
-    -lavdevice
+    -lavdevice \
+    -lswscale
 
 
 SOURCES += main.cpp \
     fileio.cpp \
-    stream.cpp
+    stream.cpp \
+    audio.cpp \
+    video.cpp
 
 HEADERS += \
     fileio.h \
     stream.h \
     common.h \
-    ffmpeg_muxer.h
+    ffmpeg_muxer.h \
+    audio.h \
+    video.h
