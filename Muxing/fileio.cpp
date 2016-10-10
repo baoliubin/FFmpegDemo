@@ -24,3 +24,10 @@ QDebug operator<< (QDebug dbg, const FileIO & args)
 				 <<args. height;
 	return dbg;
 }
+void outError(int number)
+{
+    QByteArray error;
+    error.resize(1024);
+    av_strerror(number, error.data(), error.size());
+    qDebug() << QString(error);
+}
