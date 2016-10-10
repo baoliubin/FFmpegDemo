@@ -1,7 +1,7 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-
+#include <QOpenGLDebugLogger>
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
@@ -30,13 +30,14 @@ protected:
 	void calcFPS();
 	void updateFPS(qreal);
 	void paintFPS();
-//	int allocTexture();
+	int allocTexture(int fmt);
 signals:
 
 public slots:
 	void processVideoData(const QByteArray &data, int width, int height, int pixfmt);
+	void handleLoggedMessage(QOpenGLDebugMessage message);
 private:
-	int m_width, m_height;
+	QOpenGLDebugLogger *logger;
 	GLint m_pixFmt;
 	QByteArray arrY, arrU, arrV;
 

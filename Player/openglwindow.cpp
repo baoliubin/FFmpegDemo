@@ -1,6 +1,8 @@
 #include "openglwindow.h"
+
 #include "libavformat/avformat.h"
 #include <QPainter>
+
 OpenGLWindow::OpenGLWindow(QWidget *parent) : QOpenGLWidget(parent)
 {
 	fps = 0;
@@ -20,8 +22,6 @@ void OpenGLWindow::timerEvent(QTimerEvent *event)
 }
 void OpenGLWindow::initializeGL()
 {
-	m_width = width();
-	m_height= height();
 	initializeOpenGLFunctions();
 
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -30,40 +30,108 @@ void OpenGLWindow::initializeGL()
 	glDepthMask(GL_TRUE);
 	glEnable(GL_TEXTURE_2D);
 
-	initTextures();
+	//	initTextures();
 	initShaders();
 	initData();
+	logger = new QOpenGLDebugLogger(this->context());
 
+	bool ret = logger->initialize(); // initializes in the current context, i.e. ctx
+	if (ret) {
+		connect(logger, SIGNAL(messageLogged(QOpenGLDebugMessage)), this, SLOT(handleLoggedMessage(QOpenGLDebugMessage)));
+		logger->startLogging();
+	} else {
+		qDebug() << "logger initialize failed";
+	}
 	mModelMatrix.setToIdentity();
-//	connect(&work, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SLOT(processVideoData(QByteArray,int,int,int)));
+	//	connect(&work, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SLOT(processVideoData(QByteArray,int,int,int)));
 	emit work.work();
+}
+void OpenGLWindow::handleLoggedMessage(QOpenGLDebugMessage message)
+{
+	qDebug() << message;
 }
 void OpenGLWindow::processVideoData(const QByteArray &data, int width, int height, int pixfmt)
 {
 	switch (pixfmt) {
-		case AV_PIX_FMT_YUV420P: {
-			arrY = data.left(width * height);
-			arrU = data.mid(width * height, width * height/4);
-			arrV = data.mid(width * height* 5 / 4, width * height/4);
-			m_pixFmt = 0;
-			break;
-		}
-		case AV_PIX_FMT_YUV444P: {
+		case AV_PIX_FMT_YUV444P:
 			arrY = data.left(width * height);
 			arrU = data.mid(width * height, width * height);
 			arrV = data.mid(width * height * 2, width * height);
 			m_pixFmt = 1;
 			break;
-		}
-		default: {
+		case AV_PIX_FMT_YUV420P:
+			arrY = data.left(width * height);
+			arrU = data.mid(width * height, width * height/4);
+			arrV = data.mid(width * height* 5 / 4, width * height/4);
+			m_pixFmt = 0;
+			break;
+		default:
 			qDebug() << "this format not support GPU speed up" << pixfmt;
 			return ;
 			break;
-		}
 	}
 	qDebug() << arrY.size() << arrU.size() << arrV.size();
 	resize(width, height);
+
+	static int once = allocTexture(m_pixFmt);
 	update();
+}
+int OpenGLWindow::allocTexture(int fmt)
+{
+	int w = width();
+	int h = height();
+	if (fmt == 0) {
+		//yuv420p
+		texY = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		texY->setFormat(QOpenGLTexture::LuminanceFormat);
+		texY->setSize(w, h);
+		texY->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+		texY->setMinificationFilter(QOpenGLTexture::Nearest);
+		texY->setMagnificationFilter(QOpenGLTexture::Nearest);
+		texY->setWrapMode(QOpenGLTexture::Repeat);
+
+		texU = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		texU->setFormat(QOpenGLTexture::LuminanceFormat);
+		texU->setSize(w / 2, h / 2);
+		texU->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+		texU->setMinificationFilter(QOpenGLTexture::Nearest);
+		texU->setMagnificationFilter(QOpenGLTexture::Nearest);
+		texU->setWrapMode(QOpenGLTexture::Repeat);
+
+		texV = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		texV->setFormat(QOpenGLTexture::LuminanceFormat);
+		texV->setSize(w / 2, h / 2);
+		texV->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+		texV->setMinificationFilter(QOpenGLTexture::Nearest);
+		texV->setMagnificationFilter(QOpenGLTexture::Nearest);
+		texV->setWrapMode(QOpenGLTexture::Repeat);
+	} else {
+		//yuv444p
+		texY = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		texY->setFormat(QOpenGLTexture::LuminanceFormat);
+		texY->setSize(w, h);
+		texY->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+		texY->setMinificationFilter(QOpenGLTexture::Nearest);
+		texY->setMagnificationFilter(QOpenGLTexture::Nearest);
+		texY->setWrapMode(QOpenGLTexture::Repeat);
+
+		texU = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		texU->setFormat(QOpenGLTexture::LuminanceFormat);
+		texU->setSize(w, h);
+		texU->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+		texU->setMinificationFilter(QOpenGLTexture::Nearest);
+		texU->setMagnificationFilter(QOpenGLTexture::Nearest);
+		texU->setWrapMode(QOpenGLTexture::Repeat);
+
+		texV = new QOpenGLTexture(QOpenGLTexture::Target2D);
+		texV->setFormat(QOpenGLTexture::LuminanceFormat);
+		texV->setSize(w, h);
+		texV->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+		texV->setMinificationFilter(QOpenGLTexture::Nearest);
+		texV->setMagnificationFilter(QOpenGLTexture::Nearest);
+		texV->setWrapMode(QOpenGLTexture::Repeat);
+	}
+	return 0;
 }
 void OpenGLWindow::paintGL()
 {
@@ -110,33 +178,23 @@ void OpenGLWindow::initShaders()
 }
 void OpenGLWindow::initTextures()
 {
-	//    texture = new QOpenGLTexture(QOpenGLTexture::Target2D);
-	//    texture->setSize(width(), height());
-	//    texture->setFormat(QOpenGLTexture::LuminanceFormat);
-	//    texture->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-	//    texture->setMinificationFilter(QOpenGLTexture::Linear);
-	//    texture->setMagnificationFilter(QOpenGLTexture::Linear);
-	//    texture->setWrapMode(QOpenGLTexture::Repeat);
 	texY = new QOpenGLTexture(QOpenGLTexture::Target2D);
-	texY->setSize(m_width, m_height);
 	texY->setFormat(QOpenGLTexture::LuminanceFormat);
-	texY->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+
 	texY->setMinificationFilter(QOpenGLTexture::Nearest);
 	texY->setMagnificationFilter(QOpenGLTexture::Nearest);
 	texY->setWrapMode(QOpenGLTexture::Repeat);
 
 	texU = new QOpenGLTexture(QOpenGLTexture::Target2D);
-	texU->setSize(m_width, m_height);
 	texU->setFormat(QOpenGLTexture::LuminanceFormat);
-	texU->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+
 	texU->setMinificationFilter(QOpenGLTexture::Nearest);
 	texU->setMagnificationFilter(QOpenGLTexture::Nearest);
 	texU->setWrapMode(QOpenGLTexture::Repeat);
 
 	texV = new QOpenGLTexture(QOpenGLTexture::Target2D);
-	texV->setSize(m_width, m_height);
 	texV->setFormat(QOpenGLTexture::LuminanceFormat);
-	texV->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
+
 	texV->setMinificationFilter(QOpenGLTexture::Nearest);
 	texV->setMagnificationFilter(QOpenGLTexture::Nearest);
 	texV->setWrapMode(QOpenGLTexture::Repeat);
@@ -250,3 +308,4 @@ void OpenGLWindow::paintFPS()
 	painter.setRenderHint(QPainter::TextAntialiasing);
 	painter.drawText(10, 10, QString("FPS:%1 %2").arg(QString::number(fps, 'f', 3)).arg(frameNumber));
 }
+

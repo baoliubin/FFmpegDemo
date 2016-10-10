@@ -52,4 +52,5 @@ int Add_audio_video_stream(OutputStream *videoStream, OutputStream *audioStream,
 	if (fmt->audio_codec != AV_CODEC_ID_NONE) {
 
 	}
+	return 0;
 }

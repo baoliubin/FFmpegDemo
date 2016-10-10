@@ -1,9 +1,8 @@
 #include <QApplication>
 #include <QScreen>
 
-#define US_OPENGL
-
-#ifdef US_OPENGL
+#ifdef USE_OPENGL
+#include <QSurfaceFormat>
 #include "openglwindow.h"
 #else
 #include "widget.h"
@@ -12,9 +11,15 @@ int main(int argc, char * argv[])
 {
     qSetMessagePattern("log[%{file} %{line} %{function} %{threadid}] %{message}");
     QApplication a(argc, argv);
-#ifdef US_OPENGL
+#ifdef USE_OPENGL
+	QSurfaceFormat format;
+	// asks for a OpenGL 3.2 debug context using the Core profile
+	format = QSurfaceFormat::defaultFormat();
+	format.setProfile(QSurfaceFormat::CoreProfile);
+	format.setOption(QSurfaceFormat::DebugContext);
+	QSurfaceFormat::setDefaultFormat(format);
+
     OpenGLWindow w;
-//    w.resize(a.primaryScreen()->size());
     w.show();
 #else
     Widget widget;

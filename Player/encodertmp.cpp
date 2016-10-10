@@ -1,6 +1,6 @@
 #include "encodertmp.h"
 #include <QDebug>
-const char *url = "rtmp://192.168.1.154:1935/o/l live=1\0";
+const char *url = "rtmp://192.168.1.154:1935/p/l live=1\0";
 
 static void outError(int num)
 {
@@ -23,13 +23,13 @@ int DecodeRtmp::open_codec_context(AVMediaType type)
 		qDebug() << "find best stream failed";
 		outError(index);
 		return -1;
-//		int ret = avformat_alloc_output_context2(&FFmpeg.fmtCtx, NULL, "flv", NULL);
+		//		int ret = avformat_alloc_output_context2(&FFmpeg.fmtCtx, NULL, "flv", NULL);
 
-//		if (ret < 0) {
-//			qDebug() << "alloc output context failed" ;
-//			outError(ret);
-//			return ret;
-//		}
+		//		if (ret < 0) {
+		//			qDebug() << "alloc output context failed" ;
+		//			outError(ret);
+		//			return ret;
+		//		}
 	}
 	FFmpeg.stream = FFmpeg.fmtCtx->streams[index];
 	if (type == AVMEDIA_TYPE_VIDEO) {
@@ -83,7 +83,9 @@ int DecodeRtmp::decode_packet(int & gotFrame, bool cached)
 			qDebug() << "video frame "<< (cached  ? QString("(cached)") : QString("")) <<video_frame_count << "coded_n: " << frame->coded_picture_number << "pts:" << frame->pts;
 			video_frame_count++;
 			av_image_copy(video.dest_data, video.dest_linesize, (const uint8_t **)frame->data, frame->linesize, video.pix_format, frame->width, frame->height);
+#ifdef OUT_VIDEO_TO_FILE
 			video.outFile.write((const char *)video.dest_data[0], video.dest_bufsize);
+#endif
 			//TODO output videobuf
 			videoData.clear();
 			videoData.append((const char *)video.dest_data[0], video.dest_bufsize);
@@ -147,11 +149,14 @@ int DecodeRtmp::init()
 			qDebug() << "alloc image buf failed";
 			return -2;
 		}
-		//		videoFile.setFileName(Args.output_Video_FileName);
-		//		if (!videoFile.open(QFile::ReadWrite)) {
-		//			qDebug() << "open video output file failed";
-		//			return -3;
-		//		}
+#ifdef OUT_VIDEO_TO_FILE
+		video.outFile.setFileName("out.yuv");
+
+		if (!video.outFile.open(QFile::ReadWrite)) {
+			qDebug() << "open video output file failed";
+			return -3;
+		}
+#endif
 
 	} else {
 		qDebug() << "open video context failed";
@@ -225,6 +230,9 @@ void DecodeRtmp::release()
 		av_frame_free(&frame);
 	if (video.dest_data[0])
 		av_free(video.dest_data[0]);
+#ifdef OUT_VIDEO_TO_FILE
+	video.outFile.close();
+#endif
 }
 DecodeRtmp::DecodeRtmp(QObject *parent) : QObject(parent)
 {
@@ -251,7 +259,7 @@ Work::Work()
 	himma->moveToThread(&thread);
 	connect(&thread, SIGNAL(finished()), himma, SLOT(deleteLater()));
 	connect(this, SIGNAL(work()), himma, SLOT(work()));
-//	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SIGNAL(readyVideo(QByteArray,int,int,int)));
+	//	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SIGNAL(readyVideo(QByteArray,int,int,int)));
 	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SLOT(processVideo(QByteArray,int,int,int)));
 	connect(himma, SIGNAL(readyAudio(QByteArray)), this, SIGNAL(readyAudio(QByteArray)));
 	thread.start();
