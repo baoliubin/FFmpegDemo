@@ -1,8 +1,9 @@
 TEMPLATE = app
 CONFIG += c++11
-QT += core gui widgets
+QT += core gui widgets quick qml
 TARGET = Player
-
+DEFINES += USE_OPENGL
+#DEFINES += OUT_VIDEO_TO_FILE
 win32{
     FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
 }
@@ -23,15 +24,15 @@ LIBS += -L$${FFMPEGPATH}/lib -lavcodec \
 
 SOURCES += main.cpp \
     encodertmp.cpp \
-    openglwindow.cpp \
-    widget.cpp
+    widget.cpp \
+    openglwindow.cpp
 
 FORMS +=
 
 HEADERS += \
     encodertmp.h \
-    openglwindow.h \
-    widget.h
+    widget.h \
+    openglwindow.h
 
 RESOURCES += \
     shader.qrc
