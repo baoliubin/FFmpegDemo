@@ -13,13 +13,13 @@ OpenGLWindow::OpenGLWindow(QWidget *parent)
 {
 	fps = 0;
 	frameNumber = 0;
-	m_pixFmt = 0;
+	m_pixFmt = -1;
 	arrY.clear();
 	arrU.clear();
 	arrV.clear();
 	vertices.clear();
 	texcoords.clear();
-
+	isAlloced = false;
 	startTimer(50);
 }
 OpenGLWindow::~OpenGLWindow()
@@ -81,7 +81,7 @@ void OpenGLWindow::initializeGL()
 	glDepthMask(GL_TRUE);
 	glEnable(GL_TEXTURE_2D);
 
-	initTextures(0);
+	initTextures();
 	initShaders();
 	initData();
 	logger = new QOpenGLDebugLogger(this->context());
@@ -129,7 +129,8 @@ void OpenGLWindow::processVideoData(const QByteArray &data, int width, int heigh
 	}
 
 	resize(width, height);
-//	initTextures(m_pixFmt);
+	if (!isAlloced)
+		allocTexture(m_pixFmt);
 	update();
 }
 
@@ -175,85 +176,59 @@ void OpenGLWindow::initShaders()
 	program.bind();
 
 }
-int OpenGLWindow::initTextures(int fmt)
+void OpenGLWindow::initTextures()
 {
-	if (texY || texU || texV) {
-		qDebug() << "texture has created";
-		return 0;
-	}
+	//yuv420p
+	texY = new QOpenGLTexture(QOpenGLTexture::Target2D);
+	texY->setFormat(QOpenGLTexture::LuminanceFormat);
+	texY->setFixedSamplePositions(false);
+	texY->setMinificationFilter(QOpenGLTexture::Nearest);
+	texY->setMagnificationFilter(QOpenGLTexture::Nearest);
+	texY->setWrapMode(QOpenGLTexture::ClampToEdge);
 
+	texU = new QOpenGLTexture(QOpenGLTexture::Target2D);
+	texU->setFormat(QOpenGLTexture::LuminanceFormat);
+	texU->setFixedSamplePositions(false);
+	texU->setMinificationFilter(QOpenGLTexture::Nearest);
+	texU->setMagnificationFilter(QOpenGLTexture::Nearest);
+	texU->setWrapMode(QOpenGLTexture::ClampToEdge);
+
+	texV = new QOpenGLTexture(QOpenGLTexture::Target2D);
+	texV->setFormat(QOpenGLTexture::LuminanceFormat);
+	texV->setFixedSamplePositions(false);
+	texV->setMinificationFilter(QOpenGLTexture::Nearest);
+	texV->setMagnificationFilter(QOpenGLTexture::Nearest);
+	texV->setWrapMode(QOpenGLTexture::ClampToEdge);
+
+}
+void OpenGLWindow::allocTexture(int fmt)
+{
 	int w	= width();
 	int h	= height();
 	if (fmt == 0) {
 		//yuv420p
-		texY = new QOpenGLTexture(QOpenGLTexture::Target2D);
-		texY->setFormat(QOpenGLTexture::LuminanceFormat);
-		texY->setFixedSamplePositions(false);
-
-
 		texY->setSize(w, h);
 		texY->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
 
-		texY->setMinificationFilter(QOpenGLTexture::Nearest);
-		texY->setMagnificationFilter(QOpenGLTexture::Nearest);
-		texY->setWrapMode(QOpenGLTexture::ClampToEdge);
-
-		qDebug() << "texY isCreated:"<<texY->textureId()<<texY->isCreated()<<texY->width() << texY->height()<<texY->isStorageAllocated();
-
-		texU = new QOpenGLTexture(QOpenGLTexture::Target2D);
-		texU->setFormat(QOpenGLTexture::LuminanceFormat);
-		texU->setFixedSamplePositions(false);
 		texU->setSize(w / 2, h / 2);
 		texU->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
 
-		texU->setMinificationFilter(QOpenGLTexture::Nearest);
-		texU->setMagnificationFilter(QOpenGLTexture::Nearest);
-		texU->setWrapMode(QOpenGLTexture::ClampToEdge);
-
-
-		texV = new QOpenGLTexture(QOpenGLTexture::Target2D);
-		texV->setFormat(QOpenGLTexture::LuminanceFormat);
-		texV->setFixedSamplePositions(false);
 		texV->setSize(w / 2, h / 2);
 		texV->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-
-		texV->setMinificationFilter(QOpenGLTexture::Nearest);
-		texV->setMagnificationFilter(QOpenGLTexture::Nearest);
-		texV->setWrapMode(QOpenGLTexture::ClampToEdge);
-
-
 	} else {
 		//yuv444p
-		texY = new QOpenGLTexture(QOpenGLTexture::Target2D);
-		texY->setFormat(QOpenGLTexture::LuminanceFormat);
 		texY->setSize(w, h);
-		texY->create();
 		texY->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-		texY->setMinificationFilter(QOpenGLTexture::Nearest);
-		texY->setMagnificationFilter(QOpenGLTexture::Nearest);
-		texY->setWrapMode(QOpenGLTexture::Repeat);
 
-		texU = new QOpenGLTexture(QOpenGLTexture::Target2D);
-		texU->setFormat(QOpenGLTexture::LuminanceFormat);
-		texU->setSize(w, h);
-		texU->create();
+		texU->setSize(w , h);
 		texU->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-		texU->setMinificationFilter(QOpenGLTexture::Nearest);
-		texU->setMagnificationFilter(QOpenGLTexture::Nearest);
-		texU->setWrapMode(QOpenGLTexture::Repeat);
 
-		texV = new QOpenGLTexture(QOpenGLTexture::Target2D);
-		texV->setFormat(QOpenGLTexture::LuminanceFormat);
-		texV->setSize(w, h);
-		texV->create();
+		texV->setSize(w , h);
 		texV->allocateStorage(QOpenGLTexture::Luminance, QOpenGLTexture::UInt8);
-		texV->setMinificationFilter(QOpenGLTexture::Nearest);
-		texV->setMagnificationFilter(QOpenGLTexture::Nearest);
-		texV->setWrapMode(QOpenGLTexture::Repeat);
-	}
-	return 0;
-}
 
+	}
+	isAlloced = true;
+}
 void OpenGLWindow::initData()
 {
 	vertices << QVector3D(-1, 1, 0.0f)
@@ -282,6 +257,9 @@ void OpenGLWindow::draw()
 	}
 	if (arrV.size() <=0 ) {
 		qDebug() << "v array is empty";
+		return ;
+	}
+	if (!isAlloced) {
 		return ;
 	}
 	//	static int once = allocTexture();

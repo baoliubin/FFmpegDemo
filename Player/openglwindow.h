@@ -23,14 +23,14 @@ protected:
 	void resizeGL(int w, int h) override;
 	void timerEvent(QTimerEvent *event) override;
 	void initShaders();
-	int initTextures(int fmt);
+	void initTextures();
 
 	void initData();
 	void draw();
 	void calcFPS();
 	void updateFPS(qreal);
 	void paintFPS();
-	int allocTexture(int fmt);
+	void allocTexture(int fmt);
 
 signals:
 
@@ -58,6 +58,7 @@ private:
 	qreal fps;
 	int frameNumber;
 	Work work;
+	bool isAlloced;
 };
 
 #endif // WINDOW_H
