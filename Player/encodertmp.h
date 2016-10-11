@@ -25,6 +25,7 @@ signals:
     void readyAudio(const QByteArray &data);
 public slots:
     void work();
+    void stop();
 private:
     int open_codec_context(AVMediaType type);
     void decode();
@@ -63,6 +64,8 @@ private:
 	AVFrame *frame;
 	AVPacket packet;
 	QByteArray audioData, videoData;
+
+	int m_STOP;
 };
 typedef struct _VideoData{
     QByteArray data;
@@ -81,6 +84,7 @@ signals:
     void readyVideo(const QByteArray &data, int width, int height, int pixfmt);
     void readyAudio(const QByteArray &data);
     void work();
+    void stop();
 public slots:
     void processVideo(const QByteArray &data, int width, int height, int pixfmt);
 private:

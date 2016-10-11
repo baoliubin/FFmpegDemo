@@ -23,7 +23,7 @@ protected:
 	void resizeGL(int w, int h) override;
 	void timerEvent(QTimerEvent *event) override;
 	void initShaders();
-	void initTextures();
+	int initTextures(int fmt);
 
 	void initData();
 	void draw();
@@ -31,6 +31,7 @@ protected:
 	void updateFPS(qreal);
 	void paintFPS();
 	int allocTexture(int fmt);
+
 signals:
 
 public slots:

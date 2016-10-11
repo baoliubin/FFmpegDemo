@@ -1,5 +1,6 @@
 #include "encodertmp.h"
 #include <QDebug>
+#include <QCoreApplication>
 const char *url = "rtmp://192.168.1.154:1935/p/l live=1\0";
 
 static void outError(int num)
@@ -7,7 +8,7 @@ static void outError(int num)
 	QByteArray error;
 	error.resize(1024);
 	av_strerror(num, error.data(), error.size());
-	qDebug() << "ffmpeg error:" << QString(error);
+	qDebug() << "FFMPEG ERROR:" << QString(error);
 }
 // <0 : failed
 // >=0 : index
@@ -80,7 +81,7 @@ int DecodeRtmp::decode_packet(int & gotFrame, bool cached)
 				return -1;
 			}
 
-			qDebug() << "video frame "<< (cached  ? QString("(cached)") : QString("")) <<video_frame_count << "coded_n: " << frame->coded_picture_number << "pts:" << frame->pts;
+			//qDebug() << "video frame "<< (cached  ? QString("(cached)") : QString("")) <<video_frame_count << "coded_n: " << frame->coded_picture_number << "pts:" << frame->pts;
 			video_frame_count++;
 			av_image_copy(video.dest_data, video.dest_linesize, (const uint8_t **)frame->data, frame->linesize, video.pix_format, frame->width, frame->height);
 #ifdef OUT_VIDEO_TO_FILE
@@ -103,7 +104,7 @@ int DecodeRtmp::decode_packet(int & gotFrame, bool cached)
 		decoded = FFMIN(ret, packet.size);
 
 		if (gotFrame) {
-			qDebug() << "audio frame " << (cached  ? QString("(cached)") : QString("")) <<audio_frame_count << "b_samples" << frame->nb_samples << "pts:" << frame->pts;
+			//qDebug() << "audio frame " << (cached  ? QString("(cached)") : QString("")) <<audio_frame_count << "b_samples" << frame->nb_samples << "pts:" << frame->pts;
 			audio_frame_count++;
 			size_t linesize = frame->nb_samples * av_get_bytes_per_sample((AVSampleFormat)frame->format);
 			//			audioFile.write((const char *)frame->extended_data[0], linesize);
@@ -157,7 +158,7 @@ int DecodeRtmp::init()
 			return -3;
 		}
 #endif
-
+		qDebug() << "oepn video context success";
 	} else {
 		qDebug() << "open video context failed";
 	}
@@ -172,6 +173,7 @@ int DecodeRtmp::init()
 		//			qDebug() << "open audio output file failed";
 		//			return -3;
 		//		}
+		qDebug() << "open audip context success";
 	} else {
 		qDebug() << "open audio context failed";
 	}
@@ -200,23 +202,36 @@ void DecodeRtmp::decode()
 {
 	int ret = 0;
 	int gotFrame = 0;
-	while(av_read_frame(FFmpeg.fmtCtx, &packet) >= 0) {
+	while(1) {
+		int get = av_read_frame(FFmpeg.fmtCtx, &packet);
+		if (get < 0) {
+			break;
+		}
+		if (m_STOP) {
+			goto stop;
+		}
 		do {
+			if (m_STOP) {
+				goto stop;
+			}
 			ret = decode_packet(gotFrame, false);
 			if (ret < 0) {
 				break;
 			}
 			packet.data += ret;
 			packet.size -= ret;
-
 		} while( packet.size > 0);
 	}
 	packet.data = nullptr;
 	packet.size = 0;
 	do {
+		if (m_STOP) {
+			goto stop;
+		}
 		ret = decode_packet(gotFrame, true);
 	} while(gotFrame);
-
+stop:
+	return ;
 }
 void DecodeRtmp::release()
 {
@@ -236,7 +251,7 @@ void DecodeRtmp::release()
 }
 DecodeRtmp::DecodeRtmp(QObject *parent) : QObject(parent)
 {
-
+	m_STOP = 0;
 }
 DecodeRtmp::~DecodeRtmp()
 {
@@ -244,6 +259,7 @@ DecodeRtmp::~DecodeRtmp()
 }
 void DecodeRtmp::work()
 {
+	m_STOP = 0;
 	int ret = 0;
 	ret = init();
 	if (ret!=0) {
@@ -252,6 +268,10 @@ void DecodeRtmp::work()
 	decode();
 	release();
 }
+void DecodeRtmp::stop()
+{
+	m_STOP = 1;
+}
 Work::Work()
 {
 	cache.setCapacity(20);
@@ -259,6 +279,8 @@ Work::Work()
 	himma->moveToThread(&thread);
 	connect(&thread, SIGNAL(finished()), himma, SLOT(deleteLater()));
 	connect(this, SIGNAL(work()), himma, SLOT(work()));
+	connect(this, SIGNAL(stop()), himma, SLOT(stop()));
+	connect(this, SIGNAL(stop()), &thread, SIGNAL(finished()));
 	//	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SIGNAL(readyVideo(QByteArray,int,int,int)));
 	connect(himma, SIGNAL(readyVideo(QByteArray,int,int,int)), this, SLOT(processVideo(QByteArray,int,int,int)));
 	connect(himma, SIGNAL(readyAudio(QByteArray)), this, SIGNAL(readyAudio(QByteArray)));
@@ -266,8 +288,10 @@ Work::Work()
 }
 Work::~Work()
 {
-	thread.quit();
-	thread.wait();
+	if (thread.isRunning()) {
+		thread.quit();
+//		thread.wait();
+	}
 }
 VideoData Work::getData(int &got)
 {
