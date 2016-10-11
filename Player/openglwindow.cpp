@@ -284,7 +284,6 @@ void OpenGLWindow::draw()
 
 	//pixFmt
 	program.setUniformValue("pixFmt", m_pixFmt);
-	qDebug() << "pixfmt" << m_pixFmt;
 	//纹理
 	if (m_pixFmt == 1) {
 		//yuv444p
