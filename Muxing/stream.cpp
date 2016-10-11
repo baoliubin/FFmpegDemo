@@ -99,8 +99,13 @@ int Add_audio_video_stream(OutputStream *videoStream, OutputStream *audioStream,
 void Close_Stream(AVFormatContext *fmtCtx, OutputStream *outputSt)
 {
     avcodec_close(outputSt->stream->codec);
-    av_frame_free(&outputSt->audioFrame);
-    av_frame_free(&outputSt->videoFrame);
+    if (outputSt->audioFrame)
+        av_frame_free(&outputSt->audioFrame);
+    if (outputSt->videoFrame)
+        av_frame_free(&outputSt->videoFrame);
+    if(outputSt->tmp_frame)
+        av_frame_free(&outputSt->tmp_frame);
+
     sws_freeContext(outputSt->sws_ctx);
     swr_free(&outputSt->swr_ctx);
 }

@@ -112,21 +112,21 @@ static AVFrame *get_audio_frame(OutputStream *ost)
     {
         AVRational r = { 1, 1 };
         /* check if we want to generate more frames */
-        if (av_compare_ts(ost->nextPts, ost->st->codec->time_base,	STREAM_DURATION, r) >= 0)
+        if (av_compare_ts(ost->nextPts, ost->stream->codec->time_base,	/*STREAM_DURATION*/0, r) >= 0)
             return NULL;
     }
 
     for (j = 0; j < frame->nb_samples; j++)
     {
         v = (int)(sin(ost->t) * 10000);
-        for (i = 0; i < ost->st->codec->channels; i++)
+        for (i = 0; i < ost->stream->codec->channels; i++)
             *q++ = v;
         ost->t += ost->tincr;
         ost->tincr += ost->tincr2;
     }
 
-    frame->pts = ost->next_pts;
-    ost->next_pts += frame->nb_samples;
+    frame->pts = ost->nextPts;
+    ost->nextPts += frame->nb_samples;
 
     return frame;
 }
@@ -141,7 +141,7 @@ int Write_audio_frame(AVFormatContext *oc, OutputStream *ost)
     int dst_nb_samples;
 
     av_init_packet(&pkt);
-    c = ost->st->codec;
+    c = ost->stream->codec;
 
     frame = get_audio_frame(ost);
 
@@ -156,20 +156,20 @@ int Write_audio_frame(AVFormatContext *oc, OutputStream *ost)
         * internally;
         * make sure we do not overwrite it here
         */
-        ret = av_frame_make_writable(ost->frame);
+        ret = av_frame_make_writable(ost->audioFrame);
         if (ret < 0)
             exit(1);
 
         /* convert to destination format */
         ret = swr_convert(ost->swr_ctx,
-            ost->frame->data, dst_nb_samples,
+            ost->audioFrame->data, dst_nb_samples,
             (const uint8_t **)frame->data, frame->nb_samples);
         if (ret < 0)
         {
             fprintf(stderr, "Error while converting\n");
             exit(1);
         }
-        frame = ost->frame;
+        frame = ost->audioFrame;
 
         {
             AVRational r = { 1, c->sample_rate };
@@ -188,7 +188,7 @@ int Write_audio_frame(AVFormatContext *oc, OutputStream *ost)
 
     if (got_packet)
     {
-        ret = write_frame(oc, &c->time_base, ost->st, &pkt);
+        ret = write_frame(oc, &c->time_base, ost->stream, &pkt);
         if (ret < 0)
         {
             fprintf(stderr, "Error while writing audio frame: %d\n", ret);

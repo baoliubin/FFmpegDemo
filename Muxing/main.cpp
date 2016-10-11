@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     }
     while (encode_video && encode_audio) {
         if (encode_video && (!encode_audio || av_compare_ts(videoStream.nextPts, videoStream.stream->codec->time_base, audioStream.nextPts, audioStream.stream->codec->time_base)<=0)) {
-            encode_video = !Write_video(fmtCtx, &videoStream);
+            encode_video = !Write_video_frame(fmtCtx, &videoStream);
             if (encode_video) {
                 videoFrameIdx++;
                 qDebug() <<"write " << videoFrameIdx - 1 << "video frame";
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
             }
 
         } else {
-            encode_audio = !Write_audio(fmtCtx, &audioStream);
+            encode_audio = !Write_audio_frame(fmtCtx, &audioStream);
             if (encode_audio) {
                 audioFrameIdx++;
                 qDebug() <<"write " << audioFrameIdx - 1 << "audio frame";
@@ -88,10 +88,10 @@ int main(int argc, char *argv[])
     av_write_trailer(fmtCtx);
 
     if (haveVideo) {
-       Close_stream(fmtCtx, &videoStream);
+       Close_Stream(fmtCtx, &videoStream);
     }
     if (haveAudio) {
-        Close_stream(fmtCtx, &audioStream);
+        Close_Stream(fmtCtx, &audioStream);
     }
     if (!(fmt->flags & AVFMT_NOFILE)) {
         avio_closep(&fmtCtx->pb);
