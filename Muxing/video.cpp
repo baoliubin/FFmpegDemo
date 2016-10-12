@@ -1,8 +1,7 @@
 #include "video.h"
 #include <QDebug>
 
-FILE *g_inputYUVFile = NULL;
-QFile *inputVideoFile;
+static QFile *inputVideoFile = NULL;
 
 static AVFrame* alloc_picture(enum AVPixelFormat fmt, int w, int h)
 {
@@ -79,7 +78,8 @@ static void fill_yuv_image(AVFrame *pict, int frame_index, int width, int height
     /* Y */
     for (y = 0; y < height; y++)
     {
-//        ret = fread_s(&pict->data[0][y * pict->linesize[0]], pict->linesize[0], 1, width, g_inputYUVFile);
+        //        ret = fread_s(&pict->data[0][y * pict->linesize[0]], pict->linesize[0], 1, width, g_inputYUVFile);
+        ret = inputVideoFile->read((char *)&pict->data[0][y * pict->linesize[0]], width);
         if (ret != width)
         {
             printf("Error: Read Y data error.\n");
@@ -90,7 +90,8 @@ static void fill_yuv_image(AVFrame *pict, int frame_index, int width, int height
     /* U */
     for (y = 0; y < height / 2; y++)
     {
-//        ret = fread_s(&pict->data[1][y * pict->linesize[1]], pict->linesize[1], 1, width / 2, g_inputYUVFile);
+        ret = inputVideoFile->read((char *)&pict->data[1][y * pict->linesize[1]], width / 2);
+        //        ret = fread_s(&pict->data[1][y * pict->linesize[1]], pict->linesize[1], 1, width / 2, g_inputYUVFile);
         if (ret != width / 2)
         {
             printf("Error: Read U data error.\n");
@@ -101,7 +102,8 @@ static void fill_yuv_image(AVFrame *pict, int frame_index, int width, int height
     /* V */
     for (y = 0; y < height / 2; y++)
     {
-//        ret = fread_s(&pict->data[2][y * pict->linesize[2]], pict->linesize[2], 1, width / 2, g_inputYUVFile);
+        ret = inputVideoFile->read((char *)&pict->data[2][y * pict->linesize[2]], width / 2);
+        //        ret = fread_s(&pict->data[2][y * pict->linesize[2]], pict->linesize[2], 1, width / 2, g_inputYUVFile);
         if (ret != width / 2)
         {
             printf("Error: Read V data error.\n");
@@ -117,7 +119,7 @@ static AVFrame *get_video_frame(OutputStream *ost)
     /* check if we want to generate more frames */
     {
         AVRational r = { 1, 1 };
-        if (av_compare_ts(ost->nextPts, ost->stream->codec->time_base, /*STREAM_DURATION*/0, r) >= 0)
+        if (av_compare_ts(ost->nextPts, ost->stream->codec->time_base, STREAM_DURATION, r) >= 0)
         {
             return NULL;
         }

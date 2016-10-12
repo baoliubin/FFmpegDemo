@@ -3,10 +3,11 @@
 #include "ffmpeg_muxer.h"
 #include "fileio.h"
 
-#define HAVE_VIDEO 1
-#define ENCODE_VIDEO (1 << 1)
-#define HAVE_AUDIO (1 << 2)
-#define ENCODE_AUDIO (1 << 3)
+#define HAVE_VIDEO      (1)
+#define ENCODE_VIDEO    (1 << 1)
+#define HAVE_AUDIO      (1 << 2)
+#define ENCODE_AUDIO    (1 << 3)
+
 #define STREAM_FRAME_RATE 25
 
 typedef struct _OutputStream{

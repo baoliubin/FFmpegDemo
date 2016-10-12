@@ -91,7 +91,7 @@ int Add_audio_video_stream(OutputStream *videoStream, OutputStream *audioStream,
        if ( add_audio_stream(audioStream, fmtCtx, &audioCodec, fmt->audio_codec) > 0) {
             qDebug() << "add i audio stream";
             ret |= HAVE_AUDIO;
-            ret |= ENCODE_VIDEO;
+            ret |= ENCODE_AUDIO;
        }
 	}
     return ret;

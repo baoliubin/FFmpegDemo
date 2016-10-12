@@ -65,8 +65,12 @@ int main(int argc, char *argv[])
         outError(ret);
         return 1;
     }
-    while (encode_video && encode_audio) {
-        if (encode_video && (!encode_audio || av_compare_ts(videoStream.nextPts, videoStream.stream->codec->time_base, audioStream.nextPts, audioStream.stream->codec->time_base)<=0)) {
+    while (encode_video || encode_audio) {
+        if (encode_video &&
+                (!encode_audio ||
+                 av_compare_ts(videoStream.nextPts, videoStream.stream->codec->time_base,
+                               audioStream.nextPts, audioStream.stream->codec->time_base)<=0)
+                ) {
             encode_video = !Write_video_frame(fmtCtx, &videoStream);
             if (encode_video) {
                 videoFrameIdx++;
@@ -97,6 +101,9 @@ int main(int argc, char *argv[])
         avio_closep(&fmtCtx->pb);
     }
     avformat_free_context(fmtCtx);
+    fileIO.audioFile.close();
+    fileIO.videoFile.close();
+
     qDebug() << "process succeed";
 	return 0;
 }

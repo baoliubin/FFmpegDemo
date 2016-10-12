@@ -1,4 +1,7 @@
 #include "audio.h"
+
+static QFile *inputVideoFile = NULL;
+
 static AVFrame * alloc_audio_frame(enum AVSampleFormat sample_fmt, uint64_t channel_layout,	int sample_rate, int nb_samples)
 {
     AVFrame *frame = av_frame_alloc();
@@ -88,6 +91,7 @@ int OpenAudio(AVFormatContext *oc, AVCodec *codec, OutputStream *ost, FileIO &io
         qDebug() << "open audio file failed";
         return -3;
     }
+    inputVideoFile = &io.audioFile;
     return 0;
 }
 static int write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt)
@@ -112,7 +116,7 @@ static AVFrame *get_audio_frame(OutputStream *ost)
     {
         AVRational r = { 1, 1 };
         /* check if we want to generate more frames */
-        if (av_compare_ts(ost->nextPts, ost->stream->codec->time_base,	/*STREAM_DURATION*/0, r) >= 0)
+        if (av_compare_ts(ost->nextPts, ost->stream->codec->time_base,	STREAM_DURATION, r) >= 0)
             return NULL;
     }
 
