@@ -27,7 +27,6 @@ unix|win32: LIBS += -L$${FFMPEGPATH}/lib/ \
     -lswresample \
     -lavutil \
     -lavfilter \
-    -lavdevice \
     -lswscale
 
 
@@ -44,3 +43,4 @@ HEADERS += \
     ffmpeg_muxer.h \
     audio.h \
     video.h
+
