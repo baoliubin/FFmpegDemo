@@ -90,7 +90,7 @@ int main(int argc, char ** argv)
         av_free_packet(&packet);
     }
     av_write_trailer(outputCtx);
-
+	qDebug() << "process succeed";
 end:
     avformat_close_input(&inputCtx);
     if (outputCtx && !(outfmt->flags & AVFMT_NOFILE))

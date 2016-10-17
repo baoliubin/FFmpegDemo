@@ -4,6 +4,7 @@
 
 extern "C" {
 #define __STDC_CONSTANT_MACROS
+#define __STDC_FORMAT_MACROS
 #include "libavutil/timestamp.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
