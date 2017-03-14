@@ -1,13 +1,15 @@
-#include <QFile>
+﻿#include <QFile>
 #include <QDebug>
 #include <stdlib.h>
+
+#include "stdint.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libavutil/opt.h>
+//#include <libavutil/opt.h>
 #include <libavutil/imgutils.h>
-#include <libavutil/samplefmt.h>
+//#include <libavutil/samplefmt.h>
 }
 #include "errcode.h"
 struct _Args{

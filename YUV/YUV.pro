@@ -11,6 +11,7 @@ CONFIG += console c++11
 TARGET = YUV
 
 win32{
+    DEFINES +=__STDC_FORMAT_MACROS
     FFMPEGPATH = G:/Code/FFMPEG/ffmpeg
 }
 unix{

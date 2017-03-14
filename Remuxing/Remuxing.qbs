@@ -4,24 +4,24 @@ Project{
 
     references: ["ver/ver.qbs"]
 
-    Product {
+    CppApplication {
         name:"Remuxing"
-        type:"application"
-        consoleApplication: false
+//        type:"application"
+//        consoleApplication: false
         Depends {name:"app_version_header"}
-        Depends {name:"cpp"}
+//        Depends {name:"cpp"}
 
         property string ffmpegPath : {
             if (qbs.hostOS.contains("unix") || qbs.hostOS.contains("linux"))
                 return "/usr/local/ffmpeg/shared"
             else if (qbs.hostOS.contains("windows"))
-                return "F:/ffmepg/ffmpeg"
+                return "G:/Code/FFMPEG/ffmpeg"
         }
 
         cpp.cxxLanguageVersion:"c++11"
         cpp.defines: ["DEFINE_TEST", "SHOW_LOG", "USE_COLORS=5", 'COLOR_STR="blanched almond"']
-        cpp.includePaths: [ffmpegPath + "/include"]
-        cpp.libraryPaths: [ffmpegPath + "/lib"]
+        cpp.includePaths: base.concat([ffmpegPath + "/include"])
+        cpp.libraryPaths: base.concat([ffmpegPath + "/lib"])
 
         cpp.dynamicLibraries:[
             "avcodec",

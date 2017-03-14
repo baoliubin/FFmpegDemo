@@ -5,4 +5,5 @@ SUBDIRS = Capture \
     Player  \
     RGBToH264 \
     Convert \
-    Muxing
+    Muxing  \
+    Remuxing \

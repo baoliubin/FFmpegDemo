@@ -1,14 +1,39 @@
 ## FFMEPG DEMO
 
-#### 简单的使用FFMPEG 进行视频编码解码
+####  学习FFMPEG的时候写的一些例子
 
 
-运行参数
-    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments">in.h264 out.yuv</value>
-    <value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">YUVDecoding/YUVDecoding.pro</value>
-   
-	<value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments">demo.mp4 demo.acc demo.yuv</value>
-	<value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">Player/Player.pro</value>
-	
-	<value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.CommandLineArguments">flower_cif.yuv out.h265 352 288 5412000 300</value>
-	<value type="QString" key="Qt4ProjectManager.Qt4RunConfiguration.ProFile">YUV/YUV.pro</value>
+* **YUV**
+
+  yuv转码h264
+
+* **YUVDecoding**
+
+  h264解码为yuv
+
+* **Capture**
+
+  读取本地视频文件并播放
+
+* **RGBToH264**
+
+  RGB转换为h264
+
+* **Convert**
+
+  格式转换
+
+* **Muxing**
+
+  音频、视频混合
+
+* **Remuxing**
+
+  音频、视频分离
+
+* **Player**
+
+  一个综合的例子
+  拉流rtmp, 解码到yuv420p/yuv444p, OpenGL 转码rgb并显示
+
+  其中rtmp服务器地址可以换成本地视频文件路径.
